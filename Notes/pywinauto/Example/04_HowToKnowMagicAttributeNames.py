@@ -7,3 +7,4 @@ dlg_spec = app["无标题 - 记事本"]
 # wait till the window is really open
 actionable_dlg = dlg_spec.wait('visible')
 
+dlg_spec.print_control_identifiers()

@@ -12,7 +12,7 @@ actionable_dlg = dlg_spec.wait('visible')
 # If you want to navigate across process boundaries
 # (say Win10 Calculator surprisingly draws its widgets in more than one process)
 # your entry point is a Desktop object.
-# 简单点说, 计算器是多线程的，需要将入设置为 Desktop
+# 简单点说, 计算器是多线程的，需要将入口设置为 Desktop
 from subprocess import Popen
 from pywinauto import Desktop
 Popen('calc.exe', shell=True)

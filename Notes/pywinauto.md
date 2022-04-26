@@ -57,6 +57,426 @@ https://github.com/pywinauto/pywinauto/releases
 
   `py_inspect.py` 源码在项目里面也有
 
+# Reference
+
+## 检测是否安装成功
+
+```python
+from pywinauto.application import Application
+app = Application(backend="uia").start("notepad.exe")
+# app.UntitledNotepad.type_keys("%FX")    # English System
+app["无标题 - 记事本"].type_keys("%FX")
+```
+
+## Entry Points For Automation
+
+- 一个主进程限制所有线程的
+
+```python
+from pywinauto.application import Application
+
+# First you should start your application or connect to an existing app instance.
+# an entry point for further automation limiting all the scope by process boundaries.
+app = Application(backend="uia").start("notepad.exe")
+# describe the window inside Notepad.exe process
+dlg_spec = app["无标题 - 记事本"]
+# wait till the window is really open
+actionable_dlg = dlg_spec.wait('visible')
+```
+
+- 多线程的应用
+
+```python
+# If you want to navigate across process boundaries
+# (say Win10 Calculator surprisingly draws its widgets in more than one process)
+# your entry point is a Desktop object.
+# 简单点说, 计算器是多线程的，需要将入口设置为 Desktop
+from subprocess import Popen
+from pywinauto import Desktop
+Popen('calc.exe', shell=True)
+dlg = Desktop(backend="uia").Calculator
+dlg.wait('visible')
+```
+
+**Application** and **Desktop** objects are both backend-specific. No need to use backend name in further actions explicitly.
+
+## Window Specification
+
+这是高级 pywinauto API 的核心概念。您可以大致或更详细地描述任何窗口或控件，即使它尚不存在或已关闭。窗口规范还保留有关将用于获取真实窗口或控件的匹配/搜索算法的信息。
+
+让我们创建一个详细的窗口规范：
+
+```python
+from pywinauto.application import Application
+app = Application(backend="uia").start('notepad.exe')
+
+# describe the window inside Notepad.exe process
+# dlg_spec = app.UntitledNotepad
+dlg_spec = app["无标题 - 记事本"]
+# wait till the window is really open
+actionable_dlg = dlg_spec.wait('visible')
+```
+
+实际的窗口查找是通过`wrapper_object()`方法来执行的。它为真实的现有窗口/控件或 raises 返回一些包装器`ElementNotFoundError`。这个包装器可以通过发送动作或检索数据来处理窗口/控件。
+
+但是 Python 可以隐藏此`wrapper_object()`调用，以便您在生产中拥有更紧凑的代码。以下语句完全相同：
+
+```python
+dlg_spec.wrapper_object().minimize() # while debugging
+dlg_spec.minimize() # in production
+```
+
+创建窗口规范有许多可能的标准。这些只是几个例子。
+
+```python
+# can be multi-level
+app.window(title_re='.* - Notepad$').window(class_name='Edit')
+
+# can combine criteria
+dlg = Desktop(backend="uia").Calculator
+dlg.window(auto_id='num8Button', control_type='Button')
+```
+
+## Attribute Resolution Magic
+
+Python 通过动态解析对象属性来简化创建窗口规范。但是属性名称与任何变量名称具有相同的限制：**不能有空格、逗号和其他特殊符号**。但幸运的是 pywinauto 使用“最佳匹配”算法使查找能够抵抗拼写错误和小变化。
+
+```python
+app.UntitledNotepad
+# is equivalent to
+app.window(best_match='UntitledNotepad')
+```
+
+Unicode characters and special symbols usage is possible through an item access in a dictionary like manner.
+
+```python
+app['Untitled - Notepad']
+# is the same as
+app.window(best_match='Untitled - Notepad')
+```
+
+## How to know magic attribute names
+
+There are several principles how “best match” gold names are attached to the controls. So if a window specification is close to one of these names you will have a successful name matching.
+
+1. By title (window text, name): `app.Properties.OK.click()`
+2. By title and control type: `app.Properties.OKButton.click()`
+3. By control type and number: `app.Properties.Button3.click()` (*Note*: Button0 and Button1 match the same button, Button2 is the next etc.)
+4. By top-left label and control type: `app.OpenDialog.FileNameEdit.set_text("")`
+5. By control type and item text: `app.Properties.TabControlSharing.select("General")`
+
+## How to disable magic attribute names
+
+In some cases, you might prefer disable the magic lookup system, so that Pywinauto immediately raises if you access an attribute which exists neither on the WindowSpecification object, nor on the underlying element-wrapper object. Indeed, by default, Pywinauto will add your attribute name to the search system, and will only fail on a subsequent attribute access or method call.
+
+In this case, turn off the allow_magic_lookup argument of your Desktop or Application instance:
+
+```python
+desktop = Desktop(backend='win32', allow_magic_lookup=False)
+# or 
+app = Application(allow_magic_lookup=False)
+```
+
+## Look at the examples
+
+The following examples are included: **Note**: Examples are language dependent - they will only work on the language of product that they were programmed for. All examples have been programmed for English Software except where highlighted.
+
+- `mspaint.py` Control MSPaint
+- `notepad_fast.py` Use fast timing settings to control Notepad
+- `notepad_slow.py` Use slow timing settings to control Notepad
+- `notepad_item.py` Use item rather then attribute access to control Notepad.
+- `misc_examples.py` Show some exceptions and how to get control identifiers.
+- `save_from_internet_explorer.py` Save a Web Page from Internet Explorer.
+- `save_from_firefox.py` Save a Web Page from Firefox.
+- `get_winrar_info.py` Example of how to do multilingual automation. This is not an ideal example (works on French, Czech and German WinRar)
+- `forte_agent_sample.py` Example of dealing with a complex application that is quite dynamic and gives different dialogs often when starting.
+- `windowmediaplayer.py` Just another example - deals with check boxes in a ListView.
+- `test_sakura.py`, `test_sakura2.py` Two examples of automating a Japanase product.
+
+## Automate notepad at the command line
+
+```python
+from pywinauto import application
+
+'''
+English
+app = application.Application()
+app.start("Notepad.exe")
+app.UntitledNotepad.draw_outline()
+app.UntitledNotepad.menu_select("Edit -> Replace")
+app.Replace.print_control_identifiers()
+app.Replace.Cancel.click()
+app.UntitledNotepad.Edit.type_keys("Hi from Python interactive prompt %s" % str(dir()), with_spaces = True)
+app.UntitledNotepad.menu_select("File -> Exit")
+app.Notepad.DontSave.click()
+'''
+
+app = application.Application()
+app.start("Notepad.exe")
+app["无标题 - 记事本"].draw_outline()
+app["无标题 - 记事本"].menu_select("编辑(&E) -> 替换(&R)")
+app["替换"].print_control_identifiers()
+# 由于是中文，要么确定控件的匹配项 ['Button4']
+app["替换"].Button4.click()
+# 要么用标准调用方式
+app["替换"].child_window(title="取消", class_name="Button").click()
+# 当然最安全可靠的方式是 close_click()
+app["替换"].child_window(title="取消", class_name="Button").close_click()
+# 没有 with_spaces 参数空格将不会被输入。
+app["无标题 - 记事本"].Edit.type_keys("Hi from Python interactive prompt %s" % str(dir()), with_spaces=True)
+app["无标题 - 记事本"].menu_select("文件(&F) -> 退出(&X)")
+# app["记事本"].print_control_identifiers()
+app["记事本"].child_window(title="不保存(&N)", class_name="Button").close_click()
+```
+
+打印替换对话框上控件的标识符，例如替换对话框上的第一个编辑控件可以由以下任何标识符引用：
+
+```python
+app.Replace.Edit
+app.Replace.Edit0
+app.Replace.Edit1
+app.FindwhatEdit
+```
+
+The last is the one that gives the user reading the script aftewards the best idea of what the script does.
+
+关闭替换对话框。(在脚本文件中，使用`close_click()`比使用`click()`更安全，因为close_click()会等待更长的时间来给windows关闭对话框的时间。)
+
+# How To’s
+
+## Definitions
+
+Some important defitions may be helpful for beginners.
+
+- **对话框**是包含几个其他 GUI 元素/控件（如按钮、编辑框等）的窗口。对话框不一定是主窗口。主窗体顶部的消息框也是一个对话框。pywinauto 也将主窗体视为对话框。
+- 控件是层次结构中任何级别的 GUI 元素。该定义包括窗口、按钮、编辑框、网格、网格单元、栏等
+- Win32 API 技术（pywinauto 中的“win32”后端）为每个控件提供了一个标识符。这是一个称为**句柄(handle)**的唯一整数。**This definition includes window, button, edit box, grid, grid cell, bar etc.**
+- UI Automation  API（pywinauto 中的“uia”后端）可能不会为每个 GUI 元素提供窗口**句柄。**这样的元素对“win32”后端不可见。但如果可用，`Inspect.exe`可以显示属性。`NativeWindowHandle`
+
+## How to specify a usable Application instance
+
+An `Application()` instance is the point of contact for all work with the application you are automating. So the Application instance needs to be connected to a process. There are two ways of doing this:
+
+```python
+start(self, cmd_line, timeout=app_start_timeout)  # instance method:
+# or
+connect(self, **kwargs)  # instance method:
+```
+
+`start()` is used when the application is not running and you need to start it. Use it in the following way:
+
+```python
+app = Application().start(r"c:\path\to\your\application -a -n -y --arguments")
+```
+
+The timeout parameter is optional, it should only be necessary to use if the application takes a long time to start up.
+
+timeout参数是可选的，只有在应用程序需要很长时间启动时才应该使用它。
+
+`connect()` is used when the application to be automated is already launched. To specify an already running application you need to specify one of the following:
+
+| process:    | the process id of the application, e.g.                      |
+| :---------- | ------------------------------------------------------------ |
+|             | `app = Application().connect(process=2341)`                  |
+| **handle:** | The windows handle of a window of the application, e.g.      |
+|             | `app = Application().connect(handle=0x010f0c) `              |
+| path:       | The path of the executable of the process (`GetModuleFileNameEx` is used to find the path of each process and compared against the value passed in) e.g. |
+|             | `app = Application().connect(path=r"c:\windows\system32\notepad.exe") ` |
+
+or any combination of the parameters that specify a window, these get passed to the [`pywinauto.findwindows.find_elements()`](https://pywinauto.readthedocs.io/en/latest/code/pywinauto.findwindows.html#pywinauto.findwindows.find_elements) function. e.g.
+
+
+```python
+app = Application().connect(title_re=".*Notepad", class_name="Notepad")
+```
+
+**Note**: The application has to be ready before you can use connect*(). There is no timeout or retries like there is when finding the application after start(). So if you start the application outside of pywinauto you need to either sleep or program a wait loop to wait until the application has fully started.
+
+**注意**：应用程序必须准备好才能使用 connect*()。没有像在 start() 之后找到应用程序时那样的超时或重试。因此，如果您在 pywinauto 之外启动应用程序，您需要休眠或编写一个等待循环以等待应用程序完全启动。
+
+## How to specify a dialog of the application
+
+Once the application instance knows what application it is connected to a dialog to work on needs to be specified.
+
+There are many different ways of doing this. The most common will be using item or attribute access to select a dialog based on it’s title. e.g
+
+```python
+from pywinauto import application
+app = application.Application()
+app.start("Notepad.exe")
+dlg = app.UntitledNotepad
+# or equivalently
+dlg = app["无标题 - 记事本"]
+# The next easiest method is to ask for the top_window()
+dlg = app.top_window()      # 这个方法的弊端是输入控件中，最上层窗口可能为输入法
+# You can use the same parameters as can be passed to。
+dlg = app.window(title_re="Page Setup", class_name="#32770")
+
+# Finally to have the most control you can use
+dialogs = app.windows()     # 返回 app 的所有窗口
+# this will return a list of all the visible, enabled, top level windows of the application.
+
+# You can then use some of the methods in handleprops module select the dialog you want.
+# Once you have the handle you need then use
+# app.window(handle=win)
+
+# 注意：如果对话框的标题很长 - 那么属性访问可能会很长，在这种情况下通常更容易使用
+# app.window(title_re=".*Part of Title.*")
+dlg = app.window(title_re=".*记事本.*")
+```
+
+## How to specify a control on a dialog
+
+There are a number of ways to specify a control, the simplest are
+
+```python
+app.dlg.control
+app['dlg']['control']
+# The 2nd is better for non English OS’s where you need to pass unicode strings e.g.
+app[u'your dlg title'][u'your ctrl title']
+```
+
+The code builds up multiple identifiers for each control from the following:
+
+> - title
+> - friendly class
+> - title + friendly class
+
+If the control’s title text is empty (after removing non char characters) this text is not used. Instead we look for the closest title text above and to the right of the control. And append the friendly class. So the list becomes
+
+> - friendly class
+> - closest text + friendly class
+
+## How to deal with controls that do not respond as expected (e.g. OwnerDraw Controls)
+
+某些控件（尤其是 Ownerdrawn 控件）不会按预期响应事件。例如，如果您查看任何 HLP 文件并转到索引选项卡（单击“搜索”按钮），您将看到一个列表框。在此运行 Spy 或 Winspector 将显示它确实是一个列表框 - 但它是所有者绘制的。这意味着开发人员已告知 Windows，他们将覆盖项目的显示方式并自行执行。在这种情况下，他们已经做到了，因此无法检索字符串:-(。
+
+那么这会导致什么问题呢？
+
+```python
+app.HelpTopics.ListBox.texts()                # 1
+app.HelpTopics.ListBox.select("ItemInList")   # 2
+```
+
+1. Will return a list of empty strings, all this means is that pywinauto has not been able to get the strings in the listbox
+2. This will fail with an IndexError because the select(string) method of a ListBox looks for the item in the Texts to know the index of the item that it should select.
+
+The following workaround will work on this control
+
+```python
+app.HelpTopics.ListBox.select(1)
+```
+
+不幸的是，即使这样也不会总是奏效。开发人员可以使控件不响应 Select 等标准事件。在这种情况下，您可以在列表框中选择项目的唯一方法是使用 TypeKeys() 的键盘模拟。
+
+```python
+app.Helptopics.ListBox1.type_keys("{HOME}{DOWN 2}{ENTER}")
+```
+
+- `{HOME}` will make sure that the first item is highlighted.
+- `{DOWN 2}` will then move the highlight down two items
+- `{ENTER}` will select the highlighted item
+
+TODO: WinHelp example?
+
+## How to Access the System Tray (aka SysTray, aka ‘Notification Area’)
+
+在时钟附近有代表正在运行的应用程序的图标，这个区域通常被称为“系统托盘”。事实上，这个区域有很多不同的窗口/控件。包含图标的控件实际上是一个工具栏。它是具有类 TrayNotifyWnd 的窗口内的 Pager 控件的子控件，该类位于具有类 Shell_TrayWnd 的另一个窗口内，并且所有这些窗口都是正在运行的资源管理器实例的一部分。谢天谢地，您不需要记住所有这些:-)。
+
+需要记住的重要一点是，您正在“Explorer.exe”应用程序中寻找一个具有“Shell_TrayWnd”类的窗口，该窗口具有标题为“通知区域”的工具栏控件。
+
+一种方法是执行以下操作
+
+```python
+import pywinauto.application
+app = pywinauto.application.Application().connect(path="explorer")
+systray_icons = app.ShellTrayWnd.NotificationAreaToolbar
+```
+
+The taskbar module provides very preliminary access to the System Tray.
+
+It defines the following variables:
+
+| explorer_app:        | defines an Application() object connected to the running explorer. You probably don’t need to use it directly very much. |
+| :------------------- | ------------------------------------------------------------ |
+| TaskBar:             | The handle to the task bar (the bar containing Start Button, the QuickLaunch icons, running tasks, etc |
+| StartButton:         | “Start me up” :-) I think you might know what this is!       |
+| QuickLaunch:         | The Toolbar with the quick launch icons                      |
+| SystemTray:          | The window that contains the Clock and System Tray Icons     |
+| Clock:               | The clock                                                    |
+| SystemTrayIcons:     | The toolbar representing the system tray icons               |
+| RunningApplications: | The toolbar representing the running applications            |
+
+这部分理解困难：https://pywinauto.readthedocs.io/en/latest/HowTo.html#how-to-access-the-system-tray-aka-systray-aka-notification-area
+
+## TODO
+
+# Main User Modules
+
+通常，并非所有这些匹配名称都同时可用。要检查指定对话框的这些名称，您可以使用`print_control_identifiers()` 方法。可能的“最佳匹配”名称显示为树中每个控件的 Python 列表。更详细的窗口规范也可以从方法输出中复制。
+
+·`app.Properties.child_window(title="Contains:", auto_id="13087", control_type="Edit")`
+
+## .findwindows
+
+### .find_elements()
+
+```python
+pywinauto.findwindows.find_elements(class_name=None, class_name_re=None, parent=None, process=None, title=None, title_re=None, top_level_only=True, visible_only=True, enabled_only=False, best_match=None, handle=None, ctrl_index=None, found_index=None, predicate_func=None, active_only=False, control_id=None, control_type=None, auto_id=None, framework_id=None, backend=None, depth=None)
+```
+
+WARNING! Direct usage of this function is not recommended! It’s a very low level API. Better use Application and WindowSpecification objects described in the Getting Started Guide.
+
+Possible values are:
+
+- **class_name** Elements with this window class
+
+  Inspect 中的 **ClassName**
+
+- **class_name_re** Elements whose class matches this regular expression
+
+- **parent** Elements that are children of this
+
+- **process** Elements running in this process
+
+  这个基本不用，每次启动进程都会变化
+
+- **title** Elements with this text
+
+  Inspect 中的 **Name** 属性
+
+- **title_re** Elements whose text matches this regular expression
+
+- **top_level_only** Top level elements only (default=**True**)
+
+- **visible_only** Visible elements only (default=**True**)
+
+- **enabled_only** Enabled elements only (default=False)
+
+- **best_match** Elements with a title similar to this
+
+- **handle** The handle of the element to return
+
+- **ctrl_index** The index of the child element to return
+
+- **found_index** The index of the filtered out child element to return
+
+- **predicate_func** A user provided hook for a custom element validation
+
+- **active_only** Active elements only (default=False)
+
+- **control_id** Elements with this control id
+
+- **control_type** Elements with this control type (string; for UIAutomation elements)
+
+- **auto_id** Elements with this automation id (for UIAutomation elements)
+
+   Inspect 中的 **AutomationId**
+
+- **framework_id** Elements with this framework id (for UIAutomation elements)
+
+- **backend** Back-end name to use while searching (default=None means current active backend)
+
 # 使用
 
 ## 进阶用法
