@@ -892,3 +892,141 @@ keyboard.send('ctrl+v')
 """
 ```
 
+## Inspect字段获取方式
+
+`WindowSpecification` 继承于 `Wrapper` 控件， `WindowSpecification` 可调用函数更为丰富
+
+主要多出：window() 、 child_window() 、 wait()、exists() 等封装过的函数。
+
+### 常见、易获取字段
+
+![image-20220805171305030](https://s2.loli.net/2022/08/05/AVxDlOvcHGqZUfk.png)
+
+以 box 为这个控件为例
+
+- **get_properties()**
+
+可以获取这个控件比较容易获取的属性：`box.get_properties()`
+
+```python
+{'class_name': 'QComboBox',
+ 'friendly_class_name': 'ComboBox',
+ 'texts': ['Browse',
+  'profile1-film-1000nm.txt',
+  'profile1-film-25nm.txt',
+  'oclibrary.oclib'],
+ 'control_id': None,
+ 'rectangle': <RECT L2479, T100, R2779, B130>,
+ 'is_visible': True,
+ 'is_enabled': True,
+ 'control_count': 1,
+ 'is_keyboard_focusable': True,
+ 'has_keyboard_focus': False,
+ 'automation_id': ''}
+
+# 比如需要查看 class_name:
+box.class_name()	# 'QComboBox'
+```
+
+- **legacy_properties()**
+
+此方法返回一个字典：`box.legacy_properties()`
+
+```python
+{'ChildId': 0,
+ 'DefaultAction': '按',
+ 'Description': '',
+ 'Help': '',
+ 'KeyboardShortcut': 'Down',
+ 'Name': 'cboProfile',
+ 'Role': 46,
+ 'State': 1048576,
+ 'Value': 'profile1-film-25nm.txt'}
+
+# 获取 LegacyIAccessible 一系列的值
+box.legacy_properties().get('Value')		# 'profile1-film-25nm.txt'
+```
+
+- **_control_types**
+
+查看控件类型： `box._control_types`
+
+```python
+box._control_types		# ['ComboBox']
+box._control_types[0]	# 'ComboBox'
+```
+
+- **Name**
+
+Name:	"cboProfile"
+
+`box.window_text()` : cboProfile
+
+- **AutomationId**
+
+AutomationId:	""
+
+`box.automation_id()` : ''
+
+- **ClassName**
+
+ClassName:	"QComboBox"
+
+`box.class_name()` : QComboBox
+
+- **BoundingRectangle**
+
+BoundingRectangle:	{l:2479 t:100 r:2779 b:130}
+
+`box.rectangle()` :  <RECT L2479, T100, R2779, B130>
+
+```python
+print(box.wrapper_object().rectangle())  # (L2479, T100, R2779, B130)
+rect = box.wrapper_object().rectangle()
+
+# rect 函数一览
+rect.left		# 2479 
+rect.right		# 2779
+rect.top		# 100
+rect.bottom		# 130
+rect.width()	# 300
+rect.height()	# 30
+rect.mid_point()	#  <pywinauto.win32structures.POINT at 0x1f4cbb7c340>
+rect.mid_point().x		# 2629
+rect.mid_point().y		# 115
+```
+
+### 另外一种实现方式： element_info
+
+![image-20220805171305030](https://s2.loli.net/2022/08/05/AVxDlOvcHGqZUfk.png)
+
+还是以 box 为例
+
+这个调用很贴切 Inspect
+
+```python
+box.element_info			#  <uia_element_info.UIAElementInfo - 'cboProfile', QComboBox, None>
+type(box.element_info)		# pywinauto.uia_element_info.UIAElementInfo
+.name				# 'cboProfile'
+.framework_id		# 'Qt'
+.automation_id		# ''
+.rectangle			# <RECT L2479, T100, R2779, B130>
+.class_name			# 'QComboBox'
+.control_type		# 'ComboBox'
+.process_id			# 13780
+```
+
+## 控件的 Action
+
+- **ComboBox**
+
+```python
+# ControlType:  UIA_ComboBoxControlTypeId (0xC353)
+ComboBox.select(item: str)		# 直接选中(只能操作当前页面存在的Item)
+ComboBox.expand()		# 展开
+ComboBox.collapse()		# 收回
+ComboBox.is_expanded()		# 判断是否展开
+ComboBox.is_collapsed()		# 判断是否收回
+ComboBox.is_enabled()		# 是否可用
+```
+
