@@ -695,7 +695,6 @@ def iface_virtualized_item(self)
   3
   ```
 
-  
 
 # 案例
 
@@ -811,6 +810,8 @@ dlg.wait_not(wait_for_not, timeout=None, retry_interval=None) # 等待窗口不�
 """
 # 我只列举常用形式，他们有很多默认参数但不常用，可以在源码中查看
 ctrl.click_input()  # 最常用的点击方法，一切点击操作的基本方法（底层调用只是参数不同），左键单击，使用时一般都使用默认不需要带参数
+ctrl.click_input(button='wheel', wheel_dist=10)		# 用滚轮滚动，正数向上，复数向下
+
 ctrl.right_click_input()  # 鼠标右键单击
 # 键盘输入,底层还是调用keyboard.send_keys
 ctrl.type_keys(keys, pause=None, with_spaces=False, )
@@ -1023,10 +1024,48 @@ type(box.element_info)		# pywinauto.uia_element_info.UIAElementInfo
 ```python
 # ControlType:  UIA_ComboBoxControlTypeId (0xC353)
 ComboBox.select(item: str)		# 直接选中(只能操作当前页面存在的Item)
+ComboBox.selected_text()		# 返回当前选中的内容
 ComboBox.expand()		# 展开
 ComboBox.collapse()		# 收回
 ComboBox.is_expanded()		# 判断是否展开
 ComboBox.is_collapsed()		# 判断是否收回
 ComboBox.is_enabled()		# 是否可用
+```
+
+- **Edit**
+
+```python
+# ControlType:	UIA_EditControlTypeId (0xC354)
+Edit.set_edit_text('')
+Edit.set_text('')		# .set_text() == .set_edit_text()
+Edit.get_value()		# 返回 Edit 的值
+```
+
+- **ProcessBar**
+
+```python
+# ControlType:	UIA_ProgressBarControlTypeId (0xC35C)
+RangeValuePattern = ProcessBar.iface_range_value
+if getattr(RangeValuePattern, 'CurrentMaximum') == getattr(RangeValuePattern, 'CurrentValue'):
+    pass	# 就代表进度条执行完毕
+```
+
+- **Table**
+
+```python
+# ControlType:	UIA_TableControlTypeId (0xC374)
+Table.item_count()		# 获取表格的行数
+Table.column_count()	# 获取表格的列数
+```
+
+- **DataItem**
+
+```python
+# ControlType:	UIA_DataItemControlTypeId (0xC36D)
+getattr(DataItem.iface_grid_item, "CurrentRow")			# 获取所在表格的行标签
+getattr(DataItem.iface_grid_item, "CurrentColumn")		# 获取所在表格的列标签
+
+DataItem.is_visable()
+DataItem.set_focus()
 ```
 
