@@ -1023,7 +1023,7 @@ type(box.element_info)		# pywinauto.uia_element_info.UIAElementInfo
 
 ```python
 # ControlType:  UIA_ComboBoxControlTypeId (0xC353)
-ComboBox.select(item: str)		# 直接选中(只能操作当前页面存在的Item)
+ComboBox.select(item: str)		# 直接选中(只能操作当前页面存在的Item)	# 性能就挺鸡肋，不建议用
 ComboBox.selected_text()		# 返回当前选中的内容
 ComboBox.expand()		# 展开
 ComboBox.collapse()		# 收回
@@ -1067,5 +1067,12 @@ getattr(DataItem.iface_grid_item, "CurrentColumn")		# 获取所在表格的列�
 
 DataItem.is_visable()
 DataItem.set_focus()
+```
+
+- **CheckBox**
+
+```python
+# ControlType:	UIA_CheckBoxControlTypeId (0xC352)
+CheckBox.get_toggle_state()		# 获取是否选定状态，返回 0 | 1
 ```
 
