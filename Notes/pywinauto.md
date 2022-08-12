@@ -777,7 +777,7 @@ child_window(**kwargs) # 可以不管层级的找后代中某个符合条件的�
 
 # dlg
 """
-dlg.parent() # 返回此元素的父元素,没有参数
+dlg.parent() # 返回此元素的父元素,没有参数，是BaseWrapper对象
 dlg.children(**kwargs) # 只查找一层，返回符合条件的子元素列表,支持索引，是BaseWrapper对象（或子类）
 dlg.descendants(**kwargs) # 返回符合条件的所有后代元素列表,是BaseWrapper对象（或子类）,很多函数无法调用
 dlg.iter_children(**kwargs) # 符合条件后代元素迭代器，是BaseWrapper对象（或子类）, 测试是 app 整个符合条件的子类
@@ -1074,5 +1074,12 @@ DataItem.set_focus()
 ```python
 # ControlType:	UIA_CheckBoxControlTypeId (0xC352)
 CheckBox.get_toggle_state()		# 获取是否选定状态，返回 0 | 1
+```
+
+- **Tree**
+
+```python
+getattr(Tree.iface_grid, "CurrentRowCount")
+getattr(Tree.iface_grid, "CurrentColumnCount")
 ```
 
