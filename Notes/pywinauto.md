@@ -1038,7 +1038,7 @@ ComboBox.is_enabled()		# 是否可用
 # ControlType:	UIA_EditControlTypeId (0xC354)
 Edit.set_edit_text('')
 Edit.set_text('')		# .set_text() == .set_edit_text()
-Edit.get_value()		# 返回 Edit 的值
+Edit.get_value() -> str		# 返回 Edit 的值
 ```
 
 - **ProcessBar**
